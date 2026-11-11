@@ -235,6 +235,7 @@ def register():
     email = str(data.get("email", "")).strip().lower()
     password = str(data.get("password", ""))
     household_name = str(data.get("householdName", "")).strip()
+    household_code = str(data.get("householdCode", "")).strip().upper()
 
     if len(name) < 2:
         return error("Please enter your full name.")
@@ -245,9 +246,19 @@ def register():
     if User.query.filter_by(email=email).first():
         return error("An account with this email already exists.", 409)
 
-    # Create-household registration is intentionally a single unauthenticated
-    # flow: account + household + admin membership are created together.
+    # Registration can either create a new household (admin/leader) or join
+    # an existing household with an invitation code (member). Both are
+    # completed atomically so the user is authenticated immediately.
+    if household_name and household_code:
+        return error("Choose either a new household name or an invite code, not both.")
+
     household = None
+    join_household = None
+    if household_code:
+        join_household = Household.query.filter_by(code=household_code).first()
+        if not join_household:
+            return error("Invalid household code. Please check the code sent by your household admin.", 404)
+
     if household_name:
         if len(household_name) < 2:
             return error("Please enter a household name.")
@@ -272,6 +283,8 @@ def register():
         household = Household(id=uid(), name=household_name, code=code)
         db.session.add(household)
         db.session.add(Membership(id=uid(), user_id=u.id, household_id=household.id, role="admin"))
+    elif join_household:
+        db.session.add(Membership(id=uid(), user_id=u.id, household_id=join_household.id, role="member"))
 
     try:
         db.session.commit()

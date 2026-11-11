@@ -114,11 +114,11 @@ export const actions = {
     }
   },
 
-  async register(name: string, email: string, password: string, householdName?: string) {
+  async register(name: string, email: string, password: string, householdName?: string, householdCode?: string) {
     try {
       const data = await request("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ name, email, password, householdName }),
+        body: JSON.stringify({ name, email, password, householdName, householdCode }),
       });
       applyServer(data);
       return null;
