@@ -45,8 +45,8 @@ function Landing() {
             <h1 className="mt-5 text-5xl font-bold leading-[1.02] sm:text-6xl">Split expenses.<br /><span className="text-primary-strong">Not friendships.</span></h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">Easily record shared groceries, utilities and household expenses, automatically split costs, and see exactly who owes whom.</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button variant="hero" size="lg" asChild><Link to="/register" search={{ intent: "create" }}>Create household</Link></Button>
-              <Button variant="outline" size="lg" asChild><Link to="/register" search={{ intent: "join" }}>Join a household</Link></Button>
+              <Button variant="hero" size="lg" asChild><Link to="/register" search={{ mode: "admin" }}>Create household</Link></Button>
+              <Button variant="outline" size="lg" asChild><Link to="/register" search={{ mode: "member" }}>Join a household</Link></Button>
             </div>
           </div>
           <DashboardPreview />
@@ -105,7 +105,7 @@ function Landing() {
         <div className="bg-hero rounded-[2rem] border bg-secondary px-6 py-14 text-center">
           <h2 className="text-3xl font-bold sm:text-4xl">Start splitting expenses</h2>
           <p className="mt-2 text-muted-foreground">Free for students. Set up your household in a minute.</p>
-          <Button variant="hero" size="lg" className="mt-6" asChild><Link to="/register" search={{ intent: "create" }}>Create household</Link></Button>
+          <Button variant="hero" size="lg" className="mt-6" asChild><Link to="/register" search={{ mode: "admin" }}>Create household</Link></Button>
         </div>
       </section>
 

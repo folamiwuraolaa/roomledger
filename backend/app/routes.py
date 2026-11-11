@@ -227,6 +227,96 @@ def api_root():
 def health():
     return jsonify({"status": "ok", "service": "roommate-ledger-api"})
 
+@api.get("/households/available")
+def available_households():
+    """Return the safe, public household list used during member registration."""
+    households = Household.query.order_by(func.lower(Household.name)).all()
+    return jsonify([
+        {
+            "id": h.id,
+            "name": h.name,
+            "memberCount": Membership.query.filter_by(household_id=h.id).count(),
+        }
+        for h in households
+    ])
+
+@api.post("/auth/register/admin")
+def register_admin():
+    """Create a new household leader and household in one transaction."""
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    household_name = str(data.get("householdName", "")).strip()
+
+    if len(name) < 2:
+        return error("Please enter your full name.")
+    if "@" not in email:
+        return error("Please enter a valid email address.")
+    if len(password) < 8:
+        return error("Password must be at least 8 characters.")
+    if len(household_name) < 2:
+        return error("Please enter a household name.")
+    if User.query.filter_by(email=email).first():
+        return error("An account with this email already exists. Please log in instead.", 409)
+    if Household.query.filter(func.lower(Household.name) == household_name.lower()).first():
+        return error("This household already exists. Please choose another household name.", 409)
+
+    code = uuid.uuid4().hex[:6].upper()
+    while Household.query.filter_by(code=code).first():
+        code = uuid.uuid4().hex[:6].upper()
+
+    user = User(id=uid(), name=name, email=email, password_hash=generate_password_hash(password))
+    household = Household(id=uid(), name=household_name, code=code)
+    membership = Membership(id=uid(), user_id=user.id, household_id=household.id, role="admin")
+    db.session.add_all([user, household, membership])
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return error("We could not create your account and household. Please try again.", 500)
+
+    session.clear()
+    session["user_id"] = user.id
+    return jsonify(serialize_state(user)), 201
+
+@api.post("/auth/register/member")
+def register_member():
+    """Create a member account and join the selected household atomically."""
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    household_id = str(data.get("householdId", "")).strip()
+
+    if len(name) < 2:
+        return error("Please enter your full name.")
+    if "@" not in email:
+        return error("Please enter a valid email address.")
+    if len(password) < 8:
+        return error("Password must be at least 8 characters.")
+    if not household_id:
+        return error("Please select a household.")
+    if User.query.filter_by(email=email).first():
+        return error("An account with this email already exists. Please log in instead.", 409)
+
+    household = db.session.get(Household, household_id)
+    if not household:
+        return error("That household is no longer available. Please select another household.", 404)
+
+    user = User(id=uid(), name=name, email=email, password_hash=generate_password_hash(password))
+    membership = Membership(id=uid(), user_id=user.id, household_id=household.id, role="member")
+    db.session.add_all([user, membership])
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return error("We could not create your account and join the household. Please try again.", 500)
+
+    session.clear()
+    session["user_id"] = user.id
+    return jsonify(serialize_state(user)), 201
+
 @api.post("/auth/register")
 def register():
     """Register a member and optionally create their household in the same operation."""

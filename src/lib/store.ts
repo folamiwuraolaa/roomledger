@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import type { Category, Expense, Member, Settlement } from "./ledger";
 
 export type Account = { id: string; name: string; email: string };
+export type AvailableHousehold = { id: string; name: string; memberCount: number };
 export type Notification = { id: string; title: string; body: string; read: boolean; createdAt: string };
 export type State = {
   ready: boolean;
@@ -114,17 +115,35 @@ export const actions = {
     }
   },
 
-  async register(name: string, email: string, password: string, householdName?: string, householdCode?: string) {
+  async registerAdmin(name: string, email: string, password: string, householdName: string) {
     try {
-      const data = await request("/auth/register", {
+      const data = await request("/auth/register/admin", {
         method: "POST",
-        body: JSON.stringify({ name, email, password, householdName, householdCode }),
+        body: JSON.stringify({ name, email, password, householdName }),
       });
       applyServer(data);
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : "Unable to create your account. Please try again.";
+      return e instanceof Error ? e.message : "Unable to create your admin account. Please try again.";
     }
+  },
+
+  async registerMember(name: string, email: string, password: string, householdId: string) {
+    try {
+      const data = await request("/auth/register/member", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, householdId }),
+      });
+      applyServer(data);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Unable to create your member account. Please try again.";
+    }
+  },
+
+  async availableHouseholds(): Promise<AvailableHousehold[]> {
+    const data = await request("/households/available");
+    return Array.isArray(data) ? data : [];
   },
 
 
