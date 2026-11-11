@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeftRight, Home, List, LogOut, Plus, User, Users } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, Logo, useHydrated, useLedger } from "@/components/ledger/bits";
 import { actions } from "@/lib/store";
@@ -22,12 +22,19 @@ function LedgerLayout() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const inHousehold = !!me && members.some((m) => m.id === me.id);
+  const refreshAttempted = useRef(false);
 
   useEffect(() => {
     if (!hydrated || !ready) return;
-    if (!me) navigate({ to: "/login" });
-    else if (!inHousehold) navigate({ to: "/onboarding" });
-  }, [hydrated, me, inHousehold, navigate]);
+    if (!me && !refreshAttempted.current) {
+      refreshAttempted.current = true;
+      void actions.refreshSession().then((ok) => {
+        if (!ok) navigate({ to: "/login" });
+      });
+      return;
+    }
+    if (me && !inHousehold) navigate({ to: "/onboarding" });
+  }, [hydrated, ready, me, inHousehold, navigate]);
 
   if (!hydrated || !ready || !me || !inHousehold) {
     return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading your household…</div>;

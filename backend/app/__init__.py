@@ -33,22 +33,27 @@ def create_app():
         }
 
     # Session cookies
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173").strip().rstrip("/")
+    configured_secure = os.getenv("COOKIE_SECURE", "").strip().lower()
+    # Production is cross-site (Vercel -> Render), so the session cookie MUST be
+    # Secure + SameSite=None. Local HTTP development stays on Lax/non-Secure.
     cookie_secure = (
-        os.getenv("COOKIE_SECURE", "false").lower() == "true"
+        configured_secure == "true"
+        or frontend_origin.startswith("https://")
     )
 
     app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = (
-        "None" if cookie_secure else "Lax"
-    )
+    app.config["SESSION_COOKIE_SAMESITE"] = "None" if cookie_secure else "Lax"
     app.config["SESSION_COOKIE_SECURE"] = cookie_secure
+    app.config["SESSION_COOKIE_NAME"] = "roommate_ledger_session"
+    app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 days
 
     # Database
     db.init_app(app)
 
     # CORS
     origins = [
-        x.strip()
+        x.strip().rstrip("/")
         for x in os.getenv(
             "FRONTEND_ORIGIN",
             "http://localhost:5173"

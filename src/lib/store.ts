@@ -30,7 +30,7 @@ let state: State = empty;
 let loaded = false;
 let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
-const API = (import.meta.env.VITE_API_URL ?? "http://localhost:5000/api").replace(/\/$/, "");
+const API = (import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "https://build-it-better-main.onrender.com/api" : "http://localhost:5000/api")).replace(/\/$/, "");
 
 function notify() { listeners.forEach((l) => l()); }
 
@@ -89,12 +89,19 @@ async function load() {
   if (loading) return loading;
   loading = request("/state")
     .then((data) => applyServer(data))
-    .catch(() => {
-      // A 401 simply means the visitor is not logged in yet.
-      state = { ...empty, ready: true };
+    .catch((e) => {
+      // A real 401 means logged out. Network/server failures must not erase a
+      // valid session or permanently mark auth as loaded.
+      if (e instanceof Error && e.message.includes("session has expired")) {
+        state = { ...empty, ready: true };
+        loaded = true;
+      } else {
+        state = { ...state, ready: true };
+        loaded = false;
+      }
+      notify();
     })
     .finally(() => {
-      loaded = true;
       loading = null;
       notify();
     });
@@ -126,6 +133,17 @@ export const actions = {
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Unable to log in. Please try again.";
+    }
+  },
+
+  async refreshSession() {
+    try {
+      const data = await request("/auth/me");
+      applyServer(data);
+      loaded = true;
+      return true;
+    } catch {
+      return false;
     }
   },
 

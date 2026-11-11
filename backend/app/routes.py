@@ -21,6 +21,13 @@ def uid():
 def now():
     return datetime.now(timezone.utc)
 
+
+def establish_session(user_id):
+    """Create the persistent browser session used by all normal auth flows."""
+    session.clear()
+    session.permanent = True
+    session["user_id"] = user_id
+
 def error(message, status=400):
     return jsonify({"error": message}), status
 
@@ -38,7 +45,7 @@ def current_household(user):
 def require_user():
     user = current_user()
     if not user:
-        return None, error("Please log in.", 401)
+        return None, error("Your session has expired. Please log in again.", 401)
     return user, None
 
 def member_ids(household_id):
@@ -276,8 +283,7 @@ def register_admin():
         db.session.rollback()
         return error("We could not create your account and household. Please try again.", 500)
 
-    session.clear()
-    session["user_id"] = user.id
+    establish_session(user.id)
     return jsonify(serialize_state(user)), 201
 
 @api.post("/auth/register/member")
@@ -313,8 +319,7 @@ def register_member():
         db.session.rollback()
         return error("We could not create your account and join the household. Please try again.", 500)
 
-    session.clear()
-    session["user_id"] = user.id
+    establish_session(user.id)
     return jsonify(serialize_state(user)), 201
 
 @api.post("/auth/register")
@@ -381,8 +386,7 @@ def register():
     except Exception:
         db.session.rollback()
         return error("We could not create your account and household. Please try again.", 500)
-    session.clear()
-    session["user_id"] = u.id
+    establish_session(u.id)
     return jsonify(serialize_state(u)), 201
 
 @api.post("/auth/login")
@@ -395,13 +399,22 @@ def login():
         return error("That email and password don't match. Please try again.", 401)
     if u.is_super_admin:
         return error("This is a Super Admin account. Please use the Super Admin login page.", 403)
-    session.clear(); session["user_id"] = u.id
+    establish_session(u.id)
     return jsonify(serialize_state(u))
 
 @api.post("/auth/logout")
 def logout():
     session.clear()
     return jsonify({"ok": True})
+
+@api.get("/auth/me")
+def auth_me():
+    """Return the current authenticated user without changing the session."""
+    u = current_user()
+    if not u:
+        return error("Not authenticated.", 401)
+    return jsonify(serialize_state(u))
+
 
 @api.get("/state")
 def state():
