@@ -23,6 +23,7 @@ function Settle() {
   const [amt, setAmt] = useState(debt ? String(debt.amount / 100) : "");
   const [done, setDone] = useState<{ to: string; amount: number; full: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   if (done) return (
     <Panel className="mx-auto max-w-md text-center">
@@ -43,9 +44,20 @@ function Settle() {
     if (!debt) return setError("Please choose who you're paying.");
     if (!a) return setError("Please enter an amount greater than ₦0.");
     if (a > debt.amount) return setError(`You only owe ${name(debt.to)} ${formatNaira(debt.amount)}. Please enter that amount or less.`);
-    await actions.settle(me!.id, debt.to, a);
-    toast.success("Settlement recorded.");
-    setDone({ to: debt.to, amount: a, full: a === debt.amount });
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await actions.settle(me!.id, debt.to, a);
+      toast.success("Settlement recorded.");
+      setDone({ to: debt.to, amount: a, full: a === debt.amount });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "We couldn't record the settlement. Please try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -69,7 +81,7 @@ function Settle() {
             <div className="relative mt-1.5"><span className="num absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span><Input id="amt" inputMode="decimal" className="num h-12 pl-8 text-lg" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
           </div>
           {error && <p role="alert" className="rounded-xl bg-negative-soft p-3 text-sm font-medium text-negative">{error}</p>}
-          <Button type="submit" variant="hero" size="lg" className="w-full">Mark as settled</Button>
+          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={saving}>{saving ? "Saving…" : "Mark as settled"}</Button>
           <Button type="button" variant="outline" size="lg" className="w-full" disabled>Pay online — coming soon</Button>
           <p className="text-center text-xs text-muted-foreground">Pay your roommate in cash or by transfer, then record it here.</p>
         </form>

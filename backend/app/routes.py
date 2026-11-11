@@ -491,11 +491,20 @@ def add_expense():
     db.session.add(e)
     for member_id, share in shares.items():
         db.session.add(ExpenseShare(id=uid(), expense_id=e.id, user_id=member_id, amount=share))
-    payer = db.session.get(User, paid_by)
     for member_id in shares:
         if member_id != paid_by:
-            db.session.add(Notification(id=uid(), user_id=member_id, title="New shared expense", body=f"{u.name} added {title} — your share is ₦{shares[member_id]/100:,.2f}." if shares[member_id] % 100 else f"{u.name} added {title} — your share is ₦{shares[member_id]/100:,.0f}."))
-    db.session.commit()
+            share_amount = shares[member_id]
+            body = (
+                f"{u.name} added {title} — your share is ₦{share_amount / 100:,.2f}."
+                if share_amount % 100
+                else f"{u.name} added {title} — your share is ₦{share_amount / 100:,.0f}."
+            )
+            db.session.add(Notification(id=uid(), user_id=member_id, title="New shared expense", body=body))
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return error("We couldn't save the expense. No changes were made. Please try again.", 500)
     return jsonify({"id": e.id, **serialize_state(u)}), 201
 
 @api.delete("/expenses/<expense_id>")

@@ -20,7 +20,25 @@ function Household() {
       <PageHeader title={household!.name} subtitle={`${members.length} members`} />
       <Panel className="flex flex-wrap items-center justify-between gap-4 bg-secondary">
         <div><p className="text-xs uppercase tracking-wider text-muted-foreground">Invite code</p><p className="num text-3xl font-bold tracking-widest">{household!.code}</p><p className="text-sm text-muted-foreground">Share this with roommates so they can join.</p></div>
-        <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(household!.code); toast.success("Invite code copied."); }}><Copy /> Copy code</Button>
+        <Button variant="outline" onClick={async () => {
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(household!.code);
+            } else {
+              const el = document.createElement("textarea");
+              el.value = household!.code;
+              el.style.position = "fixed";
+              el.style.opacity = "0";
+              document.body.appendChild(el);
+              el.select();
+              document.execCommand("copy");
+              el.remove();
+            }
+            toast.success("Invite code copied.");
+          } catch {
+            toast.error(`Copy failed. Your invite code is ${household!.code}.`);
+          }
+        }}><Copy /> Copy code</Button>
       </Panel>
       <Panel title="Members">
         <ul className="divide-y">
@@ -35,12 +53,25 @@ function Household() {
                 </span>
                 {isAdmin && m.id !== me!.id && (
                   <div className="flex w-full gap-2 sm:w-auto">
-                    <Button size="sm" variant="outline" onClick={async () => { await actions.setRole(m.id, m.role === "admin" ? "member" : "admin"); toast.success(`${m.name} is now ${m.role === "admin" ? "a member" : "an admin"}.`); }}>
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      try {
+                        const nextRole = m.role === "admin" ? "member" : "admin";
+                        await actions.setRole(m.id, nextRole);
+                        toast.success(`${m.name} is now ${nextRole === "member" ? "a member" : "an admin"}.`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "We couldn't update this member.");
+                      }
+                    }}>
                       Make {m.role === "admin" ? "member" : "admin"}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={async () => {
                       if (b !== 0) { toast.error(`${name(m.id)} still has an open balance. Settle it before removing them.`); return; }
-                      await actions.removeMember(m.id); toast.success("Member removed.");
+                      try {
+                        await actions.removeMember(m.id);
+                        toast.success("Member removed.");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "We couldn't remove this member.");
+                      }
                     }}>Remove</Button>
                   </div>
                 )}

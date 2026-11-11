@@ -32,7 +32,17 @@ function Detail() {
             <p className="num mt-1 text-4xl font-bold">{formatNaira(e.amount)}</p>
           </div>
           {canDelete && (
-            <Button variant="outline" onClick={async () => { if (confirm("Delete this expense? Balances will be recalculated.")) { await actions.deleteExpense(e.id); toast.success("Expense deleted."); navigate({ to: "/expenses" }); } }}>
+            <Button variant="outline" onClick={async () => {
+              if (!confirm("Delete this expense? Balances will be recalculated.")) return;
+              try {
+                await actions.deleteExpense(e.id);
+                toast.success("Expense deleted.");
+                await navigate({ to: "/expenses" });
+              } catch (err) {
+                const message = err instanceof Error ? err.message : "We couldn't delete the expense. Please try again.";
+                toast.error(message);
+              }
+            }}>
               <Trash2 /> Delete
             </Button>
           )}

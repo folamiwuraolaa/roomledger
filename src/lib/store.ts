@@ -60,13 +60,27 @@ function applyServer(data: any) {
 }
 
 async function request(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${API}${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
-    ...init,
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error ?? "Something went wrong. Please try again.");
+  let res: Response;
+  try {
+    res = await fetch(`${API}${path}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
+      ...init,
+    });
+  } catch {
+    throw new Error("We couldn't connect to the server. Please check your connection and try again.");
+  }
+
+  const contentType = res.headers.get("content-type") ?? "";
+  const body = contentType.includes("application/json")
+    ? await res.json().catch(() => ({}))
+    : {};
+
+  if (!res.ok) {
+    if (res.status === 401) throw new Error(body.error ?? "Your session has expired. Please log in again.");
+    if (res.status === 403) throw new Error(body.error ?? "You don't have permission to perform this action.");
+    throw new Error(body.error ?? `Request failed (${res.status}). Please try again.`);
+  }
   return body;
 }
 
@@ -244,6 +258,7 @@ export const actions = {
       method: "POST",
       body: JSON.stringify(e),
     });
+    if (!data?.id) throw new Error("The expense was not saved because the server returned an invalid response.");
     applyServer(data);
     return data.id as string;
   },

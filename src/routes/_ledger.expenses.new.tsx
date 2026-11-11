@@ -38,6 +38,7 @@ function AddExpense() {
   const [mode, setMode] = useState<"equal" | "custom">("equal");
   const [custom, setCustom] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const amount = parseNaira(amountStr) ?? 0;
   const parts = members.filter((m) => who.includes(m.id)).map((m) => m.id);
@@ -47,13 +48,25 @@ function AddExpense() {
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
+    if (saving) return;
+    setError(null);
     if (!title.trim()) return setError("Please give this expense a name, like “Groceries”.");
     if (!amount) return setError("Please enter an amount greater than ₦0.");
     if (!parts.length) return setError("Please select at least one person who shared this expense.");
     if (mode === "custom" && diff !== 0) return setError(`The custom amounts need to add up to ${formatNaira(amount)}. ${diff > 0 ? `${formatNaira(diff)} is still unassigned.` : `They are ${formatNaira(-diff)} over.`}`);
-    const id = await actions.addExpense({ title, category, amount, paidBy, shares });
-    toast.success("Expense added successfully.");
-    navigate({ to: "/expenses/$id", params: { id } });
+
+    setSaving(true);
+    try {
+      const id = await actions.addExpense({ title: title.trim(), category, amount, paidBy, shares });
+      toast.success("Expense added successfully.");
+      await navigate({ to: "/expenses/$id", params: { id } });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "We couldn't save the expense. Please try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -148,7 +161,7 @@ function AddExpense() {
                 {mode === "custom" && diff !== 0 && <p className="text-accent">{diff > 0 ? `${formatNaira(diff)} left to assign` : `${formatNaira(-diff)} over the total`}</p>}
               </div>
             )}
-            <Button type="submit" variant="add" size="lg" className="mt-6 w-full">Save expense</Button>
+            <Button type="submit" variant="add" size="lg" className="mt-6 w-full" disabled={saving}>{saving ? "Saving expense…" : "Save expense"}</Button>
           </Panel>
         </div>
       </form>
