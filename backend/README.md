@@ -1,90 +1,44 @@
-# Roommate Ledger Python API
+# Roommate Ledger Python Backend
 
-Flask + SQLAlchemy backend for the Roommate Ledger shared dorm expense splitter.
+Flask REST API for authentication, households, expenses, balances, settlements, notifications and Super Admin monitoring.
 
-## Responsibilities
-
-- Authentication with secure password hashing and HTTP-only sessions
-- Household creation and joining
-- Household membership and roles
-- Expense creation and deletion authorization
-- Exact kobo-based expense splitting
-- Authoritative balance and debt calculation
-- Settlement recording and validation
-- In-app notifications
-- PDF expense receipts
-- PDF settlement receipts
-- SQLite for local development
-- PostgreSQL/Neon for deployment
-
-## Local setup
+## Run locally
 
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 python run.py
 ```
 
-The API listens on `http://localhost:5000`.
+API:
 
-## API
+`http://localhost:5000`
 
-### Auth
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/state`
+Health:
 
-### Household
-- `POST /api/households`
-- `POST /api/households/join`
-- `PATCH /api/household/members/:id/role`
-- `DELETE /api/household/members/:id`
+`http://localhost:5000/api/health`
 
-### Expenses
-- `POST /api/expenses`
-- `DELETE /api/expenses/:id`
-- `GET /api/expenses/:id/receipt`
+## Production
 
-### Settlements
-- `POST /api/settlements`
-- `GET /api/settlements/:id/receipt`
+The production backend runs on Render and uses Supabase PostgreSQL.
 
-### Notifications
-- `POST /api/notifications/:id/read`
-- `POST /api/notifications/read-all`
-
-## Money representation
-
-All amounts are stored as integer **kobo**. This prevents floating-point drift.
-
-Example:
-
-`₦40,000 = 4,000,000 kobo`
-
-The frontend may format the value as Naira, but the backend remains authoritative.
-
-## Database
-
-SQLite is the default for local development.
-
-For deployment use PostgreSQL:
+Set these Render environment variables:
 
 ```text
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DATABASE?sslmode=require
+DATABASE_URL=<Supabase Session Pooler connection string>
+FLASK_SECRET_KEY=<long random secret>
+FRONTEND_ORIGIN=https://roomledgers.vercel.app
+COOKIE_SECURE=true
 ```
 
-The app automatically creates the current tables on startup. For a production release, introduce Alembic/Flask-Migrate migrations before changing deployed schemas.
+The database URL must come from Supabase's connection settings. Do not commit credentials or production secrets.
 
-## Security
+## Important security rules
 
-- Passwords are hashed with Werkzeug.
-- Authentication uses an HTTP-only session cookie.
-- Household membership is checked server-side.
-- Roles are checked server-side.
-- Expense participants must belong to the household.
-- Settlement amounts cannot exceed the current outstanding debt.
-- Users cannot access another household's records.
-- The frontend is never trusted for identity, roles or balance calculations.
+- Normal member login cannot be used to enter a Super Admin account.
+- Super Admin has a dedicated setup and login flow.
+- Household creation requires an authenticated account so the server can assign the creator as household admin.
+- Household, expense and settlement mutations are validated server-side.
+- The browser is not trusted to determine balances or permissions.

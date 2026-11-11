@@ -14,6 +14,7 @@ export const Route = createFileRoute("/super-admin/setup")({
 function SuperAdminSetup() {
   const navigate = useNavigate();
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +23,12 @@ function SuperAdminSetup() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    actions.superAdminSetupStatus().then(setAvailable).catch(() => setAvailable(false));
+    actions.superAdminSetupStatus()
+      .then(setAvailable)
+      .catch((e) => {
+        setStatusError(e instanceof Error ? e.message : "Unable to check Super Admin setup status.");
+        setAvailable(false);
+      });
   }, []);
 
   if (available === null) {
@@ -31,9 +37,9 @@ function SuperAdminSetup() {
 
   if (!available) {
     return (
-      <AuthShell title="Setup already completed" subtitle="A Super Admin account already exists for this system.">
+      <AuthShell title={statusError ? "Super Admin setup unavailable" : "Setup already completed"} subtitle={statusError ? "The server could not confirm whether setup is available." : "A Super Admin account already exists for this system."}>
         <div className="space-y-4 text-center">
-          <p className="rounded-xl bg-muted p-4 text-sm">For security, the initial Super Admin setup can only be completed once.</p>
+          <p className="rounded-xl bg-muted p-4 text-sm">{statusError ?? "For security, the initial Super Admin setup can only be completed once."}</p>
           <Button variant="hero" size="lg" className="w-full" asChild><Link to="/super-admin/login">Go to Super Admin login</Link></Button>
           <Link to="/login" className="block text-sm font-semibold text-muted-foreground">Back to member login</Link>
         </div>

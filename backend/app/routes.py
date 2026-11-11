@@ -213,6 +213,15 @@ def super_admin_logout():
     session.clear()
     return jsonify({"ok": True})
 
+@api.get("/")
+def api_root():
+    return jsonify({
+        "service": "roommate-ledger-api",
+        "status": "ok",
+        "message": "Roommate Ledger API is running.",
+        "health": "/api/health",
+    })
+
 @api.get("/health")
 def health():
     return jsonify({"status": "ok", "service": "roommate-ledger-api"})
@@ -240,6 +249,8 @@ def login():
     u = User.query.filter_by(email=email).first()
     if not u or not check_password_hash(u.password_hash, password):
         return error("That email and password don't match. Please try again.", 401)
+    if u.is_super_admin:
+        return error("This is a Super Admin account. Please use the Super Admin login page.", 403)
     session.clear(); session["user_id"] = u.id
     return jsonify(serialize_state(u))
 
@@ -251,7 +262,10 @@ def logout():
 @api.get("/state")
 def state():
     u, err = require_user()
-    if err: return err
+    if err:
+        return err
+    if u.is_super_admin:
+        return error("This is a Super Admin session. Use the Super Admin dashboard.", 403)
     return jsonify(serialize_state(u))
 
 @api.post("/households")
@@ -281,7 +295,6 @@ def join_household():
     h = Household.query.filter_by(code=code).first()
     if not h: return error("We couldn't find a household with that invite code.", 404)
     if membership_for(u.id, h.id): return jsonify(serialize_state(u))
-    if membership_for(u.id, h.id): return error("You are already a member.")
     existing, _ = current_household(u)
     if existing: return error("You already belong to a household.", 409)
     db.session.add(Membership(id=uid(), user_id=u.id, household_id=h.id, role="member"))

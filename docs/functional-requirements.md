@@ -3,7 +3,7 @@
 | ID | Requirement | Acceptance criterion |
 |---|---|---|
 | FR-01 | Registration | Valid user account is created. |
-| FR-02 | Household selection | Member can select an available household during signup. |
+| FR-02 | Account flow selection | Visitor can choose the create-household or join-household flow during registration. |
 | FR-03 | Invite code | Member can join with a valid admin code. |
 | FR-04 | Login/logout | Session starts and ends correctly. |
 | FR-05 | Household creation | Admin can create a household and receives a unique code. |

@@ -1,44 +1,33 @@
-# Vercel quick reference
+# Vercel Frontend Deployment
 
-## Backend project
+Vercel hosts the **frontend only**.
 
-Repository: this repository
-
-Root Directory:
+## Settings
 
 ```text
-backend
+Root Directory: .
+Build Command: npm run build
 ```
 
-Environment variables:
+Production environment:
+
+```env
+VITE_API_URL=https://build-it-better-main.onrender.com/api
+```
+
+The Python backend is deployed separately on Render:
 
 ```text
-DATABASE_URL=Supabase transaction-pooler URL
-FLASK_SECRET_KEY=long-random-secret
-FRONTEND_ORIGIN=https://your-frontend.vercel.app
-COOKIE_SECURE=true
+https://build-it-better-main.onrender.com
 ```
 
-Test:
+Do not configure the frontend Vercel project as a Python/Flask backend.
+
+Backend settings:
 
 ```text
-https://your-backend.vercel.app/api/health
+Root Directory: backend
+Start Command: gunicorn run:app
 ```
 
-## Frontend project
-
-Repository: the same repository
-
-Root Directory:
-
-```text
-.
-```
-
-Environment variable:
-
-```text
-VITE_API_URL=https://your-backend.vercel.app/api
-```
-
-Then redeploy after changing environment variables.
+See `DEPLOYMENT.md` for the complete deployment process.
