@@ -273,7 +273,11 @@ def register():
         db.session.add(household)
         db.session.add(Membership(id=uid(), user_id=u.id, household_id=household.id, role="admin"))
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return error("We could not create your account and household. Please try again.", 500)
     session.clear()
     session["user_id"] = u.id
     return jsonify(serialize_state(u)), 201
