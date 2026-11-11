@@ -1,0 +1,8 @@
+Flask>=3.1,<4
+Flask-SQLAlchemy>=3.1,<4
+Flask-Cors>=6,<7
+python-dotenv>=1.1,<2
+Werkzeug>=3.1,<4
+reportlab>=4.2,<5
+#psycopg<4,>=3.2
+gunicorn>=23,<24
