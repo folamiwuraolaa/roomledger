@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from sqlalchemy import func
 from .extensions import db
 from .models import User, Household, Membership, Expense, ExpenseShare, Settlement, Notification
 from .ledger import net_balances, pairwise_debts, equal_split
@@ -268,6 +269,15 @@ def state():
         return error("This is a Super Admin session. Use the Super Admin dashboard.", 403)
     return jsonify(serialize_state(u))
 
+@api.post("/households/check-name")
+def check_household_name():
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip()
+    if len(name) < 2:
+        return error("Please enter a household name.")
+    exists = Household.query.filter(func.lower(Household.name) == name.lower()).first() is not None
+    return jsonify({"available": not exists, "exists": exists})
+
 @api.post("/households")
 def create_household():
     u, err = require_user()
@@ -275,6 +285,8 @@ def create_household():
     data = request.get_json(silent=True) or {}
     name = str(data.get("name","")).strip()
     if len(name) < 2: return error("Please enter a household name.")
+    if Household.query.filter(func.lower(Household.name) == name.lower()).first():
+        return error("That household name already exists. Please enter a different name.", 409)
     existing, _ = current_household(u)
     if existing: return error("You already belong to a household.", 409)
     code = uuid.uuid4().hex[:6].upper()

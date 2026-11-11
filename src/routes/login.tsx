@@ -16,6 +16,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
   return (
     <AuthShell title="Welcome back" subtitle="Log in to your household.">
       <form className="space-y-4" noValidate onSubmit={async (e) => {
@@ -27,9 +28,10 @@ function Login() {
       }}>
         <div><Label htmlFor="email">Email</Label><Input id="email" type="email" autoComplete="email" className="mt-1.5 h-11" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div>
-          <Label htmlFor="pw">Password</Label>
+          <div className="flex justify-between"><Label htmlFor="pw">Password</Label><button type="button" onClick={() => setForgot(true)} className="text-sm font-semibold text-primary-strong">Forgot password?</button></div>
           <Input id="pw" type="password" autoComplete="current-password" className="mt-1.5 h-11" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
+        {forgot && <p className="rounded-xl bg-muted p-3 text-sm">Password reset is not available yet. Please contact the household administrator if you need help accessing your account.</p>}
         {error && <p role="alert" className="rounded-xl bg-negative-soft p-3 text-sm font-medium text-negative">{error}</p>}
         <Button type="submit" variant="hero" size="lg" className="w-full">Log in</Button>
       </form>

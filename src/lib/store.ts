@@ -176,6 +176,18 @@ export const actions = {
     }
   },
 
+  async checkHouseholdName(name: string) {
+    try {
+      const data = await request("/households/check-name", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      return { available: Boolean(data.available) };
+    } catch (e) {
+      throw e;
+    }
+  },
+
   async createHousehold(name: string) {
     try {
       const data = await request("/households", {
