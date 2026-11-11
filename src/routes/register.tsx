@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Crown, KeyRound, UserRound, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Crown, KeyRound, UserRound, ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ function Register() {
     if (f.password.length < 8) return setError("Your password needs at least 8 characters.");
     if (f.password !== f.confirm) return setError("The two passwords don't match.");
     if (mode === "admin" && f.household.trim().length < 2) return setError("Please enter a household name.");
-    if (mode === "join" && f.code.trim().length < 4) return setError("Please enter the household code sent by your admin.");
+    if ((mode === "join" || mode === "member") && f.code.trim().length < 4) return setError("Please enter the household code sent by your admin.");
 
     setBusy(true);
     try {
@@ -69,7 +69,7 @@ function Register() {
         return;
       }
 
-      if (mode === "join") {
+      if (mode === "join" || mode === "member") {
         const err = await actions.register(name, email, f.password, undefined, f.code.trim());
         if (err) return setError(err);
         navigate({ to: "/dashboard" });
@@ -105,21 +105,20 @@ function Register() {
   const Icon = selected.icon;
 
   return (
-    <AuthShell title={selected.title} subtitle={mode === "admin" ? "Create your household and go straight to your dashboard." : mode === "member" ? "Create your account first. We'll then ask for your household code." : "Enter the code sent by your household admin and join immediately."}>
+    <AuthShell title={selected.title} subtitle={mode === "admin" ? "Create your household and go straight to your dashboard." : "Create your account and join your household with the code sent by your admin."}>
       <button type="button" onClick={() => select("choose")} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to account options</button>
       <div className="mb-6 flex items-center gap-3 rounded-2xl bg-secondary p-4"><span className="grid size-10 place-items-center rounded-xl bg-card text-primary-strong"><Icon className="size-5" /></span><div><p className="font-semibold">{selected.title}</p><p className="text-xs text-muted-foreground">{mode === "admin" ? "You will be the household admin." : "You will have a member account."}</p></div></div>
 
       <form className="space-y-4" noValidate onSubmit={submit}>
         {mode === "admin" && <div>{field("household", "Household name", "text", undefined, "Maple Dorm")}</div>}
-        {mode === "join" && <div>{field("code", "Household invitation code", "text", undefined, "RL-7K4P9X")}</div>}
+        {(mode === "member" || mode === "join") && <div>{field("code", "Household invitation code", "text", undefined, "RL-7K4P9X")}</div>}
         {field("name", "Full name", "text", "name")}
         {field("email", "Email", "email", "email")}
         {field("password", "Password", "password", "new-password")}
         {field("confirm", "Confirm password", "password", "new-password")}
 
-        {mode === "member" && <div className="flex gap-2 rounded-2xl border border-dashed p-3 text-sm text-muted-foreground"><CheckCircle2 className="mt-0.5 size-4 shrink-0" /><span>After creating your account, you will be taken directly to the household-code step.</span></div>}
         {error && <p role="alert" className="rounded-xl bg-negative-soft p-3 text-sm font-medium text-negative">{error}</p>}
-        <Button type="submit" variant="hero" size="lg" className="w-full" disabled={busy}>{busy ? "Creating account…" : mode === "admin" ? "Create Admin & Household" : mode === "join" ? "Create Account & Join Household" : "Create Member Account"}</Button>
+        <Button type="submit" variant="hero" size="lg" className="w-full" disabled={busy}>{busy ? "Creating account…" : mode === "admin" ? "Create Admin & Household" : "Create Account & Join Household"}</Button>
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">Already have an account? <Link to="/login" className="font-semibold text-primary-strong">Log in</Link></p>
     </AuthShell>

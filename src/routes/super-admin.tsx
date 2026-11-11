@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,15 +11,38 @@ export const Route = createFileRoute("/super-admin")({
 });
 
 function SuperAdminDashboard() {
+  const location = useLocation();
+  if (location.pathname !== "/super-admin") return <Outlet />;
+  return <SuperAdminHome />;
+}
+
+function SuperAdminHome() {
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    actions.superAdminState().then(setData).catch((e) => {
-      setError(e instanceof Error ? e.message : "Unable to load the Super Admin dashboard.");
+    let active = true;
+    actions.superAdminState().then((result) => {
+      if (active) setData(result);
+    }).catch(async (e) => {
+      const message = e instanceof Error ? e.message : "Unable to load the Super Admin dashboard.";
+      // After a database reset there is no Super Admin yet. Send the visitor
+      // directly to the one-time setup page instead of showing a dead-end.
+      if (message.toLowerCase().includes("log in as super admin") || message.toLowerCase().includes("access is required")) {
+        try {
+          if (await actions.superAdminSetupStatus()) {
+            navigate({ to: "/super-admin/setup", replace: true });
+            return;
+          }
+        } catch {
+          // Fall through to the normal access error below.
+        }
+      }
+      if (active) setError(message);
     });
-  }, []);
+    return () => { active = false; };
+  }, [navigate]);
 
   if (error) {
     return <div className="flex min-h-screen items-center justify-center p-6"><Card className="max-w-md p-6 text-center"><h1 className="text-xl font-bold">Super Admin access required</h1><p className="mt-2 text-sm text-muted-foreground">{error}</p><Button className="mt-5" asChild><Link to="/super-admin/login">Go to Super Admin login</Link></Button></Card></div>;
