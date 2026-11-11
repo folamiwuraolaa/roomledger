@@ -1,0 +1,2 @@
+# Vercel/Python deployment helper: keep the Flask API dependencies in backend.
+-r backend/requirements.txt

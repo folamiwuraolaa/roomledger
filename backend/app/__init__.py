@@ -12,6 +12,17 @@ def create_app():
     app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-only-change-me")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///roommate_ledger.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # Supabase's transaction pooler is designed for serverless workloads.
+    # Keep the SQLAlchemy pool small and disable Psycopg prepared statements
+    # when using PostgreSQL so PgBouncer transaction pooling is safe.
+    if app.config["SQLALCHEMY_DATABASE_URI"].startswith(("postgresql://", "postgresql+psycopg://")):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_size": 1,
+            "max_overflow": 0,
+            "pool_pre_ping": True,
+            "connect_args": {"prepare_threshold": None},
+        }
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "None" if os.getenv("COOKIE_SECURE", "false").lower() == "true" else "Lax"
     app.config["SESSION_COOKIE_SECURE"] = os.getenv("COOKIE_SECURE", "false").lower() == "true"

@@ -14,11 +14,14 @@ import { Route as LedgerRouteImport } from './routes/_ledger'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as LedgerBalancesRouteImport } from './routes/_ledger.balances'
 import { Route as LedgerDashboardRouteImport } from './routes/_ledger.dashboard'
 import { Route as LedgerHouseholdRouteImport } from './routes/_ledger.household'
 import { Route as LedgerProfileRouteImport } from './routes/_ledger.profile'
 import { Route as LedgerSettleRouteImport } from './routes/_ledger.settle'
+import { Route as SuperAdminLoginRouteImport } from './routes/super-admin.login'
+import { Route as SuperAdminSetupRouteImport } from './routes/super-admin.setup'
 import { Route as LedgerExpensesIndexRouteImport } from './routes/_ledger.expenses.index'
 import { Route as LedgerExpensesIdRouteImport } from './routes/_ledger.expenses.$id'
 import { Route as LedgerExpensesNewRouteImport } from './routes/_ledger.expenses.new'
@@ -47,6 +50,11 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LedgerBalancesRoute = LedgerBalancesRouteImport.update({
   id: '/balances',
   path: '/balances',
@@ -72,6 +80,16 @@ const LedgerSettleRoute = LedgerSettleRouteImport.update({
   path: '/settle',
   getParentRoute: () => LedgerRoute,
 } as any)
+const SuperAdminLoginRoute = SuperAdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminSetupRoute = SuperAdminSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const LedgerExpensesIndexRoute = LedgerExpensesIndexRouteImport.update({
   id: '/expenses/',
   path: '/expenses/',
@@ -93,11 +111,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/balances': typeof LedgerBalancesRoute
   '/dashboard': typeof LedgerDashboardRoute
   '/household': typeof LedgerHouseholdRoute
   '/profile': typeof LedgerProfileRoute
   '/settle': typeof LedgerSettleRoute
+  '/super-admin/login': typeof SuperAdminLoginRoute
+  '/super-admin/setup': typeof SuperAdminSetupRoute
   '/expenses/$id': typeof LedgerExpensesIdRoute
   '/expenses/new': typeof LedgerExpensesNewRoute
   '/expenses/': typeof LedgerExpensesIndexRoute
@@ -107,11 +128,14 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/balances': typeof LedgerBalancesRoute
   '/dashboard': typeof LedgerDashboardRoute
   '/household': typeof LedgerHouseholdRoute
   '/profile': typeof LedgerProfileRoute
   '/settle': typeof LedgerSettleRoute
+  '/super-admin/login': typeof SuperAdminLoginRoute
+  '/super-admin/setup': typeof SuperAdminSetupRoute
   '/expenses/$id': typeof LedgerExpensesIdRoute
   '/expenses/new': typeof LedgerExpensesNewRoute
   '/expenses': typeof LedgerExpensesIndexRoute
@@ -123,11 +147,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/_ledger/balances': typeof LedgerBalancesRoute
   '/_ledger/dashboard': typeof LedgerDashboardRoute
   '/_ledger/household': typeof LedgerHouseholdRoute
   '/_ledger/profile': typeof LedgerProfileRoute
   '/_ledger/settle': typeof LedgerSettleRoute
+  '/super-admin/login': typeof SuperAdminLoginRoute
+  '/super-admin/setup': typeof SuperAdminSetupRoute
   '/_ledger/expenses/$id': typeof LedgerExpensesIdRoute
   '/_ledger/expenses/new': typeof LedgerExpensesNewRoute
   '/_ledger/expenses/': typeof LedgerExpensesIndexRoute
@@ -139,11 +166,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/super-admin'
     | '/balances'
     | '/dashboard'
     | '/household'
     | '/profile'
     | '/settle'
+    | '/super-admin/login'
+    | '/super-admin/setup'
     | '/expenses/$id'
     | '/expenses/new'
     | '/expenses/'
@@ -153,11 +183,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/super-admin'
     | '/balances'
     | '/dashboard'
     | '/household'
     | '/profile'
     | '/settle'
+    | '/super-admin/login'
+    | '/super-admin/setup'
     | '/expenses/$id'
     | '/expenses/new'
     | '/expenses'
@@ -168,11 +201,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/super-admin'
     | '/_ledger/balances'
     | '/_ledger/dashboard'
     | '/_ledger/household'
     | '/_ledger/profile'
     | '/_ledger/settle'
+    | '/super-admin/login'
+    | '/super-admin/setup'
     | '/_ledger/expenses/$id'
     | '/_ledger/expenses/new'
     | '/_ledger/expenses/'
@@ -184,6 +220,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
+  SuperAdminRoute: typeof SuperAdminRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -223,6 +260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_ledger/balances': {
       id: '/_ledger/balances'
       path: '/balances'
@@ -257,6 +301,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/settle'
       preLoaderRoute: typeof LedgerSettleRouteImport
       parentRoute: typeof LedgerRoute
+    }
+    '/super-admin/login': {
+      id: '/super-admin/login'
+      path: '/login'
+      fullPath: '/super-admin/login'
+      preLoaderRoute: typeof SuperAdminLoginRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/setup': {
+      id: '/super-admin/setup'
+      path: '/setup'
+      fullPath: '/super-admin/setup'
+      preLoaderRoute: typeof SuperAdminSetupRouteImport
+      parentRoute: typeof SuperAdminRoute
     }
     '/_ledger/expenses/': {
       id: '/_ledger/expenses/'
@@ -307,12 +365,27 @@ const LedgerRouteChildren: LedgerRouteChildren = {
 const LedgerRouteWithChildren =
   LedgerRoute._addFileChildren(LedgerRouteChildren)
 
+interface SuperAdminRouteChildren {
+  SuperAdminLoginRoute: typeof SuperAdminLoginRoute
+  SuperAdminSetupRoute: typeof SuperAdminSetupRoute
+}
+
+const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminLoginRoute: SuperAdminLoginRoute,
+  SuperAdminSetupRoute: SuperAdminSetupRoute,
+}
+
+const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
+  SuperAdminRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LedgerRoute: LedgerRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
+  SuperAdminRoute: SuperAdminRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,0 +1,8 @@
+# Vercel frontend
+VITE_API_URL=https://YOUR-BACKEND-DOMAIN/api
+
+# Backend deployment / Supabase
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DATABASE?sslmode=require
+FLASK_SECRET_KEY=replace-with-a-long-random-secret
+FRONTEND_ORIGIN=https://YOUR-PROJECT.vercel.app
+COOKIE_SECURE=true

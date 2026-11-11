@@ -127,6 +127,47 @@ export const actions = {
     }
   },
 
+
+  async superAdminSetupStatus() {
+    const data = await request("/super-admin/setup/status");
+    return Boolean(data.available);
+  },
+
+  async superAdminSetup(name: string, email: string, password: string) {
+    try {
+      await request("/super-admin/setup", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      });
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Unable to create the Super Admin account.";
+    }
+  },
+
+  async superAdminLogin(email: string, password: string) {
+    try {
+      await request("/super-admin/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Unable to sign in as Super Admin.";
+    }
+  },
+
+  async superAdminState() {
+    return request("/super-admin/state");
+  },
+
+  async superAdminLogout() {
+    await request("/super-admin/logout", { method: "POST", body: "{}" });
+    state = { ...empty, ready: true };
+    loaded = true;
+    notify();
+  },
+
   async logout() {
     try { await request("/auth/logout", { method: "POST", body: "{}" }); } finally {
       state = { ...empty, ready: true };

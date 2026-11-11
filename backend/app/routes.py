@@ -68,6 +68,151 @@ def serialize_state(user):
         "notifications": [{"id": n.id, "title": n.title, "body": n.body, "read": n.read, "createdAt": n.created_at.isoformat()} for n in notifications],
     }
 
+
+
+def require_super_admin():
+    """Require an authenticated system-wide Super Admin."""
+    user = current_user()
+    if not user:
+        return None, error("Please log in as Super Admin.", 401)
+    if not user.is_super_admin:
+        return None, error("Super Admin access is required.", 403)
+    return user, None
+
+def super_admin_payload():
+    """Return system-wide information for the Super Admin dashboard."""
+    users = User.query.order_by(User.created_at.desc()).all()
+    households = Household.query.order_by(Household.created_at.desc()).all()
+    expenses = Expense.query.order_by(Expense.date.desc()).limit(25).all()
+    settlements = Settlement.query.order_by(Settlement.date.desc()).limit(25).all()
+
+    return {
+        "user": {
+            "id": current_user().id,
+            "name": current_user().name,
+            "email": current_user().email,
+            "isSuperAdmin": True,
+        },
+        "stats": {
+            "users": User.query.count(),
+            "households": Household.query.count(),
+            "expenses": Expense.query.count(),
+            "settlements": Settlement.query.count(),
+        },
+        "users": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "isSuperAdmin": bool(u.is_super_admin),
+                "createdAt": u.created_at.isoformat(),
+            }
+            for u in users
+        ],
+        "households": [
+            {
+                "id": h.id,
+                "name": h.name,
+                "code": h.code,
+                "members": Membership.query.filter_by(household_id=h.id).count(),
+                "createdAt": h.created_at.isoformat(),
+            }
+            for h in households
+        ],
+        "recentExpenses": [
+            {
+                "id": e.id,
+                "title": e.title,
+                "amount": e.amount,
+                "category": e.category,
+                "householdId": e.household_id,
+                "paidBy": e.paid_by,
+                "date": e.date.isoformat(),
+            }
+            for e in expenses
+        ],
+        "recentSettlements": [
+            {
+                "id": s.id,
+                "amount": s.amount,
+                "householdId": s.household_id,
+                "from": s.from_user,
+                "to": s.to_user,
+                "date": s.date.isoformat(),
+            }
+            for s in settlements
+        ],
+    }
+
+@api.get("/super-admin/setup/status")
+def super_admin_setup_status():
+    """Tell the setup page whether the one-time Super Admin setup is still available."""
+    exists = User.query.filter_by(is_super_admin=True).first() is not None
+    return jsonify({"available": not exists})
+
+@api.post("/super-admin/setup")
+def super_admin_setup():
+    """Create the first and only Super Admin account."""
+    if User.query.filter_by(is_super_admin=True).first():
+        return error("Super Admin setup has already been completed.", 409)
+
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+
+    if len(name) < 2:
+        return error("Please enter the Super Admin's full name.")
+    if "@" not in email:
+        return error("Please enter a valid email address.")
+    if len(password) < 8:
+        return error("Password must be at least 8 characters.")
+    if User.query.filter_by(email=email).first():
+        return error("An account with this email already exists.", 409)
+
+    user = User(
+        id=uid(),
+        name=name,
+        email=email,
+        password_hash=generate_password_hash(password),
+        is_super_admin=True,
+    )
+    db.session.add(user)
+    db.session.commit()
+    session.clear()
+    session["user_id"] = user.id
+    return jsonify(super_admin_payload()), 201
+
+@api.post("/super-admin/login")
+def super_admin_login():
+    """Log in through the dedicated Super Admin entry point."""
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not user.is_super_admin or not check_password_hash(user.password_hash, password):
+        return error("Those Super Admin credentials are not valid.", 401)
+
+    session.clear()
+    session["user_id"] = user.id
+    return jsonify(super_admin_payload())
+
+@api.get("/super-admin/state")
+def super_admin_state():
+    user, err = require_super_admin()
+    if err:
+        return err
+    return jsonify(super_admin_payload())
+
+@api.post("/super-admin/logout")
+def super_admin_logout():
+    user = current_user()
+    if not user or not user.is_super_admin:
+        return error("Super Admin access is required.", 403)
+    session.clear()
+    return jsonify({"ok": True})
+
 @api.get("/health")
 def health():
     return jsonify({"status": "ok", "service": "roommate-ledger-api"})

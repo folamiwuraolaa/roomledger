@@ -1,41 +1,53 @@
 from collections import defaultdict
 
+
+def _member_id(member):
+    return member.user_id if hasattr(member, "user_id") else member.id
+
+
 def net_balances(members, expenses, settlements):
-    bal = {(m.user_id if hasattr(m, "user_id") else m.id): 0 for m in members}
-    for e in expenses:
-        bal[e.paid_by] = bal.get(e.paid_by, 0) + e.amount
-        for s in e.shares:
-            bal[s.user_id] = bal.get(s.user_id, 0) - s.amount
-    for s in settlements:
-        bal[s.from_user] = bal.get(s.from_user, 0) + s.amount
-        bal[s.to_user] = bal.get(s.to_user, 0) - s.amount
-    return bal
+    balances = {_member_id(member): 0 for member in members}
+
+    for expense in expenses:
+        balances[expense.paid_by] = balances.get(expense.paid_by, 0) + expense.amount
+        for share in expense.shares:
+            balances[share.user_id] = balances.get(share.user_id, 0) - share.amount
+
+    for settlement in settlements:
+        balances[settlement.from_user] = balances.get(settlement.from_user, 0) + settlement.amount
+        balances[settlement.to_user] = balances.get(settlement.to_user, 0) - settlement.amount
+
+    return balances
+
 
 def pairwise_debts(expenses, settlements):
     pairs = defaultdict(int)
+
     def add(frm, to, amount):
         if frm == to:
             return
-        a, b = sorted([frm, to])
-        pairs[(a,b)] += amount if frm == a else -amount
+        first, second = sorted([frm, to])
+        pairs[(first, second)] += amount if frm == first else -amount
 
-    for e in expenses:
-        for share in e.shares:
-            add(share.user_id, e.paid_by, share.amount)
+    for expense in expenses:
+        for share in expense.shares:
+            add(share.user_id, expense.paid_by, share.amount)
 
-    for s in settlements:
-        add(s.to_user, s.from_user, s.amount)
+    for settlement in settlements:
+        add(settlement.to_user, settlement.from_user, settlement.amount)
 
     debts = []
-    for (a,b), value in pairs.items():
+    for (first, second), value in pairs.items():
         if value > 0:
-            debts.append({"from": a, "to": b, "amount": value})
+            debts.append({"from": first, "to": second, "amount": value})
         elif value < 0:
-            debts.append({"from": b, "to": a, "amount": -value})
-    return sorted(debts, key=lambda x: x["amount"], reverse=True)
+            debts.append({"from": second, "to": first, "amount": -value})
+
+    return sorted(debts, key=lambda debt: debt["amount"], reverse=True)
+
 
 def equal_split(total, participants):
     if not participants:
         return {}
-    base, rem = divmod(total, len(participants))
-    return {uid: base + (1 if i < rem else 0) for i, uid in enumerate(participants)}
+    base, remainder = divmod(total, len(participants))
+    return {user_id: base + (1 if index < remainder else 0) for index, user_id in enumerate(participants)}
