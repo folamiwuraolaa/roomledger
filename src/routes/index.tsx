@@ -112,7 +112,10 @@ function Landing() {
       <footer className="border-t">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm text-muted-foreground">
           <Logo />
-          <p>A shared dorm expense splitter · University software engineering project</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p>A shared dorm expense splitter · University software engineering project</p>
+            <Link to="/super-admin/login" className="font-semibold hover:text-foreground">Super Admin</Link>
+          </div>
         </div>
       </footer>
     </div>

@@ -229,17 +229,53 @@ def health():
 
 @api.post("/auth/register")
 def register():
+    """Register a member and optionally create their household in the same operation."""
     data = request.get_json(silent=True) or {}
-    name = str(data.get("name","")).strip()
-    email = str(data.get("email","")).strip().lower()
-    password = str(data.get("password",""))
-    if len(name) < 2: return error("Please enter your full name.")
-    if "@" not in email: return error("Please enter a valid email address.")
-    if len(password) < 8: return error("Password must be at least 8 characters.")
-    if User.query.filter_by(email=email).first(): return error("An account with this email already exists.", 409)
-    u = User(id=uid(), name=name, email=email, password_hash=generate_password_hash(password))
-    db.session.add(u); db.session.commit()
-    session.clear(); session["user_id"] = u.id
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+    household_name = str(data.get("householdName", "")).strip()
+
+    if len(name) < 2:
+        return error("Please enter your full name.")
+    if "@" not in email:
+        return error("Please enter a valid email address.")
+    if len(password) < 8:
+        return error("Password must be at least 8 characters.")
+    if User.query.filter_by(email=email).first():
+        return error("An account with this email already exists.", 409)
+
+    # Create-household registration is intentionally a single unauthenticated
+    # flow: account + household + admin membership are created together.
+    household = None
+    if household_name:
+        if len(household_name) < 2:
+            return error("Please enter a household name.")
+        household = Household.query.filter(
+            func.lower(Household.name) == household_name.lower()
+        ).first()
+        if household:
+            return error("That household name already exists. Please enter a different name.", 409)
+
+    u = User(
+        id=uid(),
+        name=name,
+        email=email,
+        password_hash=generate_password_hash(password),
+    )
+    db.session.add(u)
+
+    if household_name:
+        code = uuid.uuid4().hex[:6].upper()
+        while Household.query.filter_by(code=code).first():
+            code = uuid.uuid4().hex[:6].upper()
+        household = Household(id=uid(), name=household_name, code=code)
+        db.session.add(household)
+        db.session.add(Membership(id=uid(), user_id=u.id, household_id=household.id, role="admin"))
+
+    db.session.commit()
+    session.clear()
+    session["user_id"] = u.id
     return jsonify(serialize_state(u)), 201
 
 @api.post("/auth/login")
