@@ -107,4 +107,4 @@ coverage/
 
 # Never commit secrets
 *.pem
-*.key
+*.key.venv/
